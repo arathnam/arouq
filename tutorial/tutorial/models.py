@@ -112,9 +112,6 @@ def get_news_feed():
     for row in session.query(Answer.text, Answer.added_at, User.name).join(User, Answer.owning_user_id == User.id).order_by(desc(Answer.added_at)):
         newsFeed.append([row.name + " submitted an answer: " + row.text, row.added_at])
 
-    #for row in session.query(Question.owning_user_id, Question.answer_id, Question.text, Question.added_at).order_by(desc(Question.added_at)):
-        #newsFeed.append(["New question submitted by " + str(row.owning_user_id) + " for " + str(row.answer_id) + ": " + row.text, row.added_at])
-
     for row in session.query(Question.text, Question.added_at, User.name, Answer.text.label('answer_text')).join(User, Question.owning_user_id == User.id).join(Answer, Question.answer_id == Answer.id).order_by(desc(Question.added_at)):
         newsFeed.append([row.name + " added a question to the answer '" + row.answer_text + "': " + row.text, row.added_at])
 
