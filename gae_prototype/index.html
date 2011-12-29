@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:fb="http://www.facebook.com/2008/fbml">
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css"/>
+  </head>
+  <body>
+    <div id="fb-root"></div>
+    <script type="text/javascript">
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '240143349389846',
+          status     : true,
+          cookie     : true,
+          xfbml      : true,
+          oauth      : true,
+        });
+
+        /* Register for these events */
+        FB.Event.subscribe('auth.login', function(response) {
+          login();
+        });
+        FB.Event.subscribe('auth.logout', function(response) {
+          logout();
+        });
+ 
+        FB.getLoginStatus(function(response) {
+          if (response.authResponse) {
+            login();
+          }
+        });
+      };
+
+      (function() {
+        var e = document.createElement('script');
+        e.type = 'text/javascript';
+        e.src = document.location.protocol + '//connect.facebook.net/en_US/all.js';
+        e.async = true;
+        document.getElementById('fb-root').appendChild(e);
+      }());
+
+      /% This is ugly. Can't be the right way. %/
+      var author;
+      var author_email;
+ 
+      function login() {
+        FB.api('/me', function(response) {
+          document.getElementById('welcomeMessage').style.display = "inline";
+          document.getElementById('welcomeMessage').innerHTML = "Welcome, " + response.name;
+          author = response.name;
+          author_email = response.email;
+        });
+        document.getElementById('guestbook').style.display = "block";
+      }
+
+      function logout() {
+        document.getElementById('welcomeMessage').style.display = "none";
+        document.getElementById('welcomeMessage').innerHTML = "";
+        document.getElementById('guestbook').style.display = "none";
+      }
+
+      function fillAuthorProperties() {
+        document.getElementById('guestbook_author').value = author;
+        document.getElementById('guestbook_author_email').value = author_email;
+      }
+    </script>
+
+    <div id="loginPanel">
+      <label id="welcomeMessage" style="display:none"></label>
+      <fb:login-button autologoutlink="true" scope="email,offline_access"></fb:login-button>
+    </div>
+
+    <div id="guestbook" style="display:none">
+      <form action="/sign" method="post" onsubmit="fillAuthorProperties()">
+        <div>
+          <textarea name="guestbook_comment" rows="3" cols="60"></textarea>
+          <input type="hidden" id="guestbook_name" name="guestbook_name" value="DefaultGuestbook"/>
+          <input type="hidden" id="guestbook_author" name="guestbook_author"/>
+          <input type="hidden" id="guestbook_author_email" name="guestbook_author_email"/>
+          <input type="submit" value="Sign Guestbook"/>
+        </div>
+      </form>
+
+      {% for greeting in greetings %}
+        {% if greeting.author %}
+          <b>{{ greeting.author }}</b> ({{ greeting.author_email }}) wrote ({{ greeting.pretty_date }}):
+        {% else %}
+          An anon user wrote ({{ greeting.pretty_date }}):
+        {% endif %}
+        <blockquote>{{ greeting.content|escape }}</blockquote>
+      {% endfor %}
+    </div>
+  </body>
+</html>
