@@ -1,0 +1,130 @@
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    desc,
+    )
+
+from sqlalchemy.ext.declarative import declarative_base
+
+from sqlalchemy.orm import (
+    scoped_session,
+    sessionmaker,
+    )
+
+from zope.sqlalchemy import ZopeTransactionExtension
+
+import datetime
+
+DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
+Base = declarative_base()
+
+def get_date():
+    return datetime.datetime.now()
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    added_at = Column(Date, default=get_date)
+    last_modified_at = Column(Date, onupdate=get_date)
+
+    def __init__(self, name, added_at, last_modified_at):
+        self.name = name
+        self.added_at = added_at
+        self.last_modified_at = last_modified_at
+
+class Answer(Base):
+    __tablename__ = 'answers'
+    id = Column(Integer, primary_key=True)
+    owning_user_id = Column(Integer)
+    text = Column(String, unique=True)
+    added_at = Column(Date, default=get_date)
+    last_modified_at = Column(Date, onupdate=get_date)
+
+    def __init__(self, owning_user_id, text, added_at, last_modified_at):
+        self.owning_user_id = owning_user_id
+        self.text = text
+        self.added_at = added_at
+        self.last_modified_at = last_modified_at
+
+class Question(Base):
+    __tablename__ = 'questions'
+    id = Column(Integer, primary_key=True)
+    owning_user_id = Column(Integer)
+    answer_id = Column(Integer)
+    text = Column(String)
+    added_at = Column(Date, default=get_date)
+    last_modified_at = Column(Date, onupdate=get_date)
+
+    def __init__(self, owning_user_id, answer_id, text, added_at, last_modified_at):
+        self.owning_user_id = owning_user_id
+        self.answer_id = answer_id
+        self.text = text
+        self.added_at = added_at
+        self.last_modified_at = last_modified_at
+
+def add_user(name):
+    added_at = get_date()
+    last_modified_at = added_at
+
+    session = DBSession()
+    user = User(name, added_at, last_modified_at)
+    session.add(user)
+
+def add_answer(owning_user_id, text):
+    added_at = get_date()
+    last_modified_at = added_at
+
+    session = DBSession()
+    answer = Answer(owning_user_id, text, added_at, last_modified_at)
+    session.add(answer)
+
+def remove_answer(id):
+    session = DBSession()
+    answer = session.query(Answer).filter_by(id=id).first()
+    session.delete(answer)  
+
+def add_question(owning_user_id, answer_id, text):
+    added_at = get_date()
+    last_modified_at = added_at
+
+    session = DBSession()
+    question = Question(owning_user_id, answer_id, text, added_at, last_modified_at)
+    session.add(question)
+
+def remove_question(id):
+    session = DBSession()
+    question = session.query(Question).filter_by(id=id).first()
+    session.delete(question)
+
+def custom_cmp(first_item, second_item):
+    return cmp(second_item[1], first_item[1])
+
+def get_news_feed():
+    session = DBSession()
+    newsFeed = []
+
+    for row in session.query(User.name, User.added_at).order_by(desc(User.added_at)):
+        newsFeed.append([row.name + " has joined", row.added_at])
+
+    for row in session.query(Answer.text, Answer.added_at, User.name).join(User, Answer.owning_user_id == User.id).order_by(desc(Answer.added_at)):
+        newsFeed.append([row.name + " submitted an answer: " + row.text, row.added_at])
+
+    #for row in session.query(Question.owning_user_id, Question.answer_id, Question.text, Question.added_at).order_by(desc(Question.added_at)):
+        #newsFeed.append(["New question submitted by " + str(row.owning_user_id) + " for " + str(row.answer_id) + ": " + row.text, row.added_at])
+
+    for row in session.query(Question.text, Question.added_at, User.name, Answer.text.label('answer_text')).join(User, Question.owning_user_id == User.id).join(Answer, Question.answer_id == Answer.id).order_by(desc(Question.added_at)):
+        newsFeed.append([row.name + " added a question to the answer '" + row.answer_text + "': " + row.text, row.added_at])
+
+    newsFeed.sort(custom_cmp)
+
+    newsFeedStr = ""
+    for item in newsFeed:
+        if (newsFeedStr == ""):
+            newsFeedStr = item[0]
+        else:
+            newsFeedStr = newsFeedStr + "<br/>" + item[0]
+            
+    return newsFeedStr
