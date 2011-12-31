@@ -125,3 +125,9 @@ def get_news_feed():
             newsFeedStr = newsFeedStr + "<br/>" + item[0]
             
     return newsFeedStr
+
+def get_answer_text(id):
+	session = DBSession()
+	answer = session.query(Answer).filter_by(id=id).first()
+	
+	return answer.text

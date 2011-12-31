@@ -3,16 +3,9 @@ from pyramid.response import Response
 
 from .models import *
 
-#from .models import (
-#    DBSession,
-#    User,
-#    )
-
-#@view_config(route_name='home', renderer='templates/mytemplate.pt')
-
-@view_config(route_name='home')
-def my_view(request):
-
+@view_config(route_name='news_feed')
+def news_feed(request):
+	
     #get_news_feed()
 
     #remove_question(2)
@@ -32,11 +25,12 @@ def my_view(request):
     
     #return {'one':'blah', 'project':'tutorial'}
 
-
     #userList = get_news_feed()
 
-    
+   	return Response(get_news_feed())
 
-    return Response(get_news_feed())
-    
-#return Response('test')
+@view_config(route_name='answer_page')
+def answer_page(request):
+	answer_id = request.matchdict['answer_id']
+	
+	return Response(get_answer_text(answer_id))
